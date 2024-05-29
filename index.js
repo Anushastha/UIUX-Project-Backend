@@ -12,15 +12,15 @@ app.use(morgan('combined'))
 // dotenv config
 dotenv.config();
 
-// // cloudinary config
+// cloudinary config
 
-// cloudinary.config({
-//     cloud_name: process.env.CLOUD_NAME,
-//     api_key: process.env.CLOUDINARY_API_KEY,
-//     api_secret: process.env.CLOUDINARY_API_SECRET
-// });
+cloudinary.config({
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
-// app.use(acceptMultimedia())
+app.use(acceptMultimedia())
 
 // cors config to accept request from frontend
 const corsOptions = {
@@ -42,6 +42,9 @@ app.use(express.json());
 app.get("/test", (req, res) => {
     res.status(200).json("Hello from server");
 })
+
+app.use('/api/user', require('./routes/userRoutes'))
+
 
 // defining port
 const PORT = process.env.PORT;
