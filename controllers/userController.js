@@ -12,7 +12,7 @@ const createUser = async (req, res) => {
     console.log(req.body);
 
     // step 2 : Destructure the data
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password} = req.body;
 
     // step 3 : validate the incomming data
     if (!firstName || !lastName || !email || !password) {
@@ -141,7 +141,7 @@ const resetPassword = async (req, res) => {
     const MailConfig = mailConfig();
 
     const mailOptions = {
-        from: 'Food Rush', // Replace with your email
+        from: 'College Seek', // Replace with your email
         to: UserData?.email,
         subject: 'Password Reset Code',
         text: `Your password reset code is: ${OTP}`

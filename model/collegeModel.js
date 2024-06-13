@@ -74,10 +74,6 @@ const collegeSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  }
 });
 
 const College = mongoose.model('College', collegeSchema);

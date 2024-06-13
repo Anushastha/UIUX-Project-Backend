@@ -18,11 +18,11 @@ const userSchema = mongoose.Schema({
         type: String,
         required: true,
     },
-    contact: {
+    confirmPassword: {
         type: String,
-        required: false,
+        required: true,
     },
-    location: {
+    contact: {
         type: String,
         required: false,
     },
@@ -38,7 +38,6 @@ const userSchema = mongoose.Schema({
         type: String,
         required: false,
     },
-
 });
 
 const Users = mongoose.model('users', userSchema);
