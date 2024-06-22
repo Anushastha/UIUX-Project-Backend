@@ -1,99 +1,180 @@
-const College = require('../models/college');
-const Course = require('../models/course');
+const cloudinary = require("cloudinary");
+const Colleges = require("../model/collegeModel");
 
 const createCollege = async (req, res) => {
+  // Step 1: Check incoming data
+  console.log(req.body);
+  console.log(req.files);
+
+  // Step 2: Destructuring data
+  const { collegeName, collegeDescription, collegeFees, collegeType, courses, establishedAt } = req.body;
+  const { collegeImage } = req.files;
+
+  // Step 3: Validate data
+  if (!collegeName || !collegeDescription || !collegeFees || !collegeType || !courses || !establishedAt || !collegeImage) {
+    return res.status(400).json({
+      success: false,
+      message: "Please fill all the fields",
+    });
+  }
+
   try {
-    const college = new College(req.body);
-    await college.save();
-    res.status(201).json({
+    // Upload image to Cloudinary
+    const uploadedImage = await cloudinary.v2.uploader.upload(collegeImage.path, {
+      folder: "colleges",
+      crop: "scale",
+    });
+
+    // Save to database
+    const newCollege = new Colleges({
+      collegeName,
+      collegeDescription,
+      collegeFees,
+      collegeType,
+      courses,
+      establishedAt,
+      collegeImageUrl: uploadedImage.secure_url,
+    });
+    await newCollege.save();
+    res.json({
       success: true,
-      message: 'College created successfully',
-      college,
+      message: "College created successfully",
+      college: newCollege,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.log(error)
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
 const getColleges = async (req, res) => {
   try {
-    const colleges = await College.find().populate('courses');
-    res.status(200).json({
+    const allColleges = await Colleges.find({});
+    res.json({
       success: true,
-      message: 'Colleges fetched successfully',
-      colleges,
+      message: "All colleges fetched successfully!",
+      colleges: allColleges,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error fetching colleges:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
 const getSingleCollege = async (req, res) => {
+  const collegeId = req.params.id;
   try {
-    const college = await College.findById(req.params.id).populate('courses');
-    if (!college) {
-      return res.status(404).json({ success: false, message: 'College not found' });
+    const singleCollege = await Colleges.findById(collegeId);
+    if (!singleCollege) {
+      return res.status(404).json({
+        success: false,
+        message: "College not found",
+      });
     }
-    res.status(200).json({
+    res.json({
       success: true,
-      message: 'College fetched successfully',
-      college,
+      message: "College fetched successfully",
+      college: singleCollege,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error fetching college:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
 const updateCollege = async (req, res) => {
+  console.log(req.body);
+  console.log(req.files);
+
+  // Destructuring data
+  const { collegeName, collegeDescription, collegeFees, collegeType, courses, establishedAt } = req.body;
+  const { collegeImage } = req.files;
+
+  // Validate data
+  if (!collegeName || !collegeDescription || !collegeFees || !collegeType || !courses || !establishedAt) {
+    return res.status(400).json({
+      success: false,
+      message: "Required fields are missing.",
+    });
+  }
+
   try {
-    const college = await College.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('courses');
-    if (!college) {
-      return res.status(404).json({ success: false, message: 'College not found' });
+    let updatedData = {
+      collegeName,
+      collegeDescription,
+      collegeFees,
+      collegeType,
+      courses,
+      establishedAt,
+    };
+
+    // Case 1: If there is an image
+    if (collegeImage) {
+      // Upload image to Cloudinary
+      const uploadedImage = await cloudinary.v2.uploader.upload(collegeImage.path, {
+        folder: "Colleges",
+        crop: "scale",
+      });
+      updatedData.collegeImageUrl = uploadedImage.secure_url;
     }
-    res.status(200).json({
+
+    // Find college and update
+    const collegeId = req.params.id;
+    const updatedCollege = await Colleges.findByIdAndUpdate(collegeId, updatedData, { new: true });
+
+    if (!updatedCollege) {
+      return res.status(404).json({
+        success: false,
+        message: "College not found",
+      });
+    }
+
+    res.json({
       success: true,
-      message: 'College updated successfully',
-      college,
+      message: "College updated successfully",
+      updatedCollege,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error updating college:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
 const deleteCollege = async (req, res) => {
+  const collegeId = req.params.id;
+
   try {
-    const college = await College.findByIdAndDelete(req.params.id);
-    if (!college) {
-      return res.status(404).json({ success: false, message: 'College not found' });
+    const deletedCollege = await Colleges.findByIdAndDelete(collegeId);
+
+    if (!deletedCollege) {
+      return res.status(404).json({
+        success: false,
+        message: "College not found",
+      });
     }
-    res.status(200).json({
+
+    res.json({
       success: true,
-      message: 'College deleted successfully',
+      message: "College deleted successfully",
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-const addCourseToCollege = async (req, res) => {
-  try {
-    const { collegeId, courseId } = req.body;
-    const college = await College.findById(collegeId);
-    const course = await Course.findById(courseId);
-
-    if (!college || !course) {
-      return res.status(404).json({ success: false, message: 'College or Course not found' });
-    }
-
-    college.courses.push(courseId);
-    course.colleges.push(collegeId);
-
-    await college.save();
-    await course.save();
-
-    res.status(200).json({ success: true, message: 'Course added to College successfully', college, course });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error deleting college:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
@@ -103,5 +184,4 @@ module.exports = {
   getSingleCollege,
   updateCollege,
   deleteCollege,
-  addCourseToCollege,
 };

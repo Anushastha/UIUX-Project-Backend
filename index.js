@@ -44,6 +44,8 @@ app.get("/test", (req, res) => {
 })
 
 app.use('/api/user', require('./routes/userRoutes'))
+app.use('/api/colleges', require('./routes/collegeRoutes'))
+app.use('/api/courses', require('./routes/courseRoutes'))
 
 
 // defining port
