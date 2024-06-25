@@ -1,16 +1,3 @@
-// const mongoose = require('mongoose');
-
-// const courseSchema = new mongoose.Schema({
-//     courseName: {
-//         type: String,
-//         required: true,
-//         trim: true,
-//     }
-// })
-
-// const Course = mongoose.model('Course', courseSchema)
-// module.exports = Course
-
 const mongoose = require('mongoose');
 
 const courseSchema = new mongoose.Schema({
@@ -19,24 +6,39 @@ const courseSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
-  expectedFees: {
-    type: String, // To allow ranges like "1-2 lakh"
+  courseDescription: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  expectedFeesMin: {
+    type: Number, 
     required: true,
   },
-  averageDuration: {
-    type: Number, // Duration in years
+  expectedFeesMax: {
+    type: Number, 
     required: true,
   },
-  colleges: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'College'
-  }],
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  }
+  averageDurationMin: {
+    type: String, 
+    required: true,
+  },
+  averageDurationMax: {
+    type: String, 
+    required: true,
+  },
+  courseImageUrl: {
+    type: String,
+    required: true,
+  },
 });
 
-const Course = mongoose.model('Course', courseSchema);
+const Courses = mongoose.model('Courses', courseSchema);
 
-module.exports = Course;
+module.exports = Courses;
+
+
+// colleges: [{
+//   type: mongoose.Schema.Types.ObjectId,
+//   ref: 'College'
+// }],

@@ -2,25 +2,25 @@ const cloudinary = require("cloudinary");
 const Colleges = require("../model/collegeModel");
 
 const createCollege = async (req, res) => {
-  // Step 1: Check incoming data
-  console.log(req.body);
-  console.log(req.files);
-
-  // Step 2: Destructuring data
-  const { collegeName, collegeDescription, collegeFees, collegeType, courses, establishedAt } = req.body;
-  const { collegeImage } = req.files;
-
-  // Step 3: Validate data
-  if (!collegeName || !collegeDescription || !collegeFees || !collegeType || !courses || !establishedAt || !collegeImage) {
-    return res.status(400).json({
-      success: false,
-      message: "Please fill all the fields",
-    });
-  }
-
   try {
+    const { collegeName, collegeDescription, collegeFees, collegeType, establishedAt } = req.body;
+    const { collegeImage } = req.files;
+    let { courses } = req.body;
+
+    if (!collegeName || !collegeDescription || !collegeFees || !collegeType || !establishedAt || !collegeImage) {
+      return res.status(400).json({
+        success: false,
+        message: "Please fill all the fields",
+      });
+    }
+
+    // Ensure courses is an array
+    if (!Array.isArray(courses)) {
+      courses = [courses];
+    }
+
     // Upload image to Cloudinary
-    const uploadedImage = await cloudinary.v2.uploader.upload(collegeImage.path, {
+    const uploadedImage = await cloudinary.uploader.upload(collegeImage.path, {
       folder: "colleges",
       crop: "scale",
     });
@@ -31,18 +31,19 @@ const createCollege = async (req, res) => {
       collegeDescription,
       collegeFees,
       collegeType,
-      courses,
+      coursesAvailable: courses,
       establishedAt,
       collegeImageUrl: uploadedImage.secure_url,
     });
     await newCollege.save();
+
     res.json({
       success: true,
       message: "College created successfully",
       college: newCollege,
     });
   } catch (error) {
-    console.log(error)
+    console.error("Error creating college:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -52,7 +53,10 @@ const createCollege = async (req, res) => {
 
 const getColleges = async (req, res) => {
   try {
-    const allColleges = await Colleges.find({});
+    const allColleges = await Colleges.find({})
+      .populate('coursesAvailable')  // Populate coursesAvailable with actual courses
+      .exec();
+
     res.json({
       success: true,
       message: "All colleges fetched successfully!",
@@ -121,7 +125,7 @@ const updateCollege = async (req, res) => {
     if (collegeImage) {
       // Upload image to Cloudinary
       const uploadedImage = await cloudinary.v2.uploader.upload(collegeImage.path, {
-        folder: "Colleges",
+        folder: "colleges",
         crop: "scale",
       });
       updatedData.collegeImageUrl = uploadedImage.secure_url;
@@ -178,10 +182,31 @@ const deleteCollege = async (req, res) => {
   }
 };
 
+const searchColleges = async (req, res) => {
+  const query = req.query.query;
+  try {
+    const colleges = await Colleges.find({
+      collegeName: { $regex: query, $options: "i" },
+    });
+    res.status(200).json({
+      success: true,
+      colleges,
+    });
+  } catch (error) {
+    console.error("Error searching colleges:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createCollege,
   getColleges,
   getSingleCollege,
   updateCollege,
   deleteCollege,
+  searchColleges,
 };

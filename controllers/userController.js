@@ -38,7 +38,7 @@ const createUser = async (req, res) => {
       // step 6 : create new user
       const newUser = new Users({
         // fieldname : incomming data name
-        UserName: UserName,
+        fullName: fullName,
         email: email,
         phoneNumber: phoneNumber,
         password: encryptedPassword,

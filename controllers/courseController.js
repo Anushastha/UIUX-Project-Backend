@@ -1,76 +1,159 @@
-const Course = require('../model/courseModel');
+const cloudinary = require("cloudinary");
+const Courses = require("../model/courseModel");
 
+// Create a new course
 const createCourse = async (req, res) => {
+  // Step 1: Validate incoming data
+  const { courseName, courseDescription, expectedFeesMin, expectedFeesMax, averageDurationMin, averageDurationMax } = req.body;
+  const { courseImage } = req.files;
+
+  if (!courseName || !courseDescription || !expectedFeesMin || !expectedFeesMax || !averageDurationMin || !averageDurationMax || !courseImage) {
+    return res.json({
+      success: false,
+      message: "Please fill all the fields",
+    });
+  }
+
   try {
-    const course = new Course(req.body);
-    await course.save();
-    res.status(201).json({
+    // Step 2: Upload image to Cloudinary
+    const uploadedImage = await cloudinary.v2.uploader.upload(courseImage.path, {
+      folder: "courses",
+      crop: "scale",
+    });
+
+    // Step 3: Save course to database
+    const newCourse = new Courses({
+      courseName: courseName,
+      courseDescription: courseDescription,
+      expectedFeesMin: expectedFeesMin,
+      expectedFeesMax: expectedFeesMax,
+      averageDurationMin: averageDurationMin,
+      averageDurationMax: averageDurationMax,
+      courseImageUrl: uploadedImage.secure_url,
+    });
+
+    await newCourse.save();
+
+    res.json({
       success: true,
-      message: 'Course created successfully',
-      course,
+      message: "Course created successfully",
+      course: newCourse,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
+// Get all courses
 const getCourses = async (req, res) => {
   try {
-    const courses = await Course.find().populate('colleges');
-    res.status(200).json({
+    const allCourses = await Courses.find({});
+    res.json({
       success: true,
-      message: 'Courses fetched successfully',
-      courses,
+      message: "All courses fetched successfully!",
+      courses: allCourses,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
+// Get a single course by ID
 const getSingleCourse = async (req, res) => {
+  const courseId = req.params.id;
   try {
-    const course = await Course.findById(req.params.id).populate('colleges');
-    if (!course) {
-      return res.status(404).json({ success: false, message: 'Course not found' });
+    const singleCourse = await Courses.findById(courseId);
+    if (!singleCourse) {
+      return res.json({
+        success: false,
+        message: "Course not found",
+      });
     }
-    res.status(200).json({
+    res.json({
       success: true,
-      message: 'Course fetched successfully',
-      course,
+      message: "Course fetched successfully",
+      course: singleCourse,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 };
 
+// Update a course by ID
 const updateCourse = async (req, res) => {
+  const { courseName, courseDescription, expectedFeesMin, expectedFeesMax, averageDurationMin, averageDurationMax } = req.body;
+  const { courseImage } = req.files;
+
+  if (!courseName || !courseDescription || !expectedFeesMin || !expectedFeesMax || !averageDurationMin || !averageDurationMax) {
+    return res.json({
+      success: false,
+      message: "Required fields are missing.",
+    });
+  }
+
   try {
-    const course = await Course.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('colleges');
-    if (!course) {
-      return res.status(404).json({ success: false, message: 'Course not found' });
+    let updatedData = {
+      courseName: courseName,
+      courseDescription: courseDescription,
+      expectedFeesMin: expectedFeesMin,
+      expectedFeesMax: expectedFeesMax,
+      averageDurationMin: averageDurationMin,
+      averageDurationMax: averageDurationMax,
+    };
+
+    if (courseImage) {
+      const uploadedImage = await cloudinary.v2.uploader.upload(courseImage.path, {
+        folder: "courses",
+        crop: "scale",
+      });
+
+      updatedData.courseImageUrl = uploadedImage.secure_url;
     }
-    res.status(200).json({
+
+    const courseId = req.params.id;
+    await Courses.findByIdAndUpdate(courseId, updatedData);
+
+    res.json({
       success: true,
-      message: 'Course updated successfully',
-      course,
+      message: courseImage ? "Course updated successfully with image." : "Course updated successfully without image.",
+      updateCourse: updatedData,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
 };
 
+// Delete a course by ID
 const deleteCourse = async (req, res) => {
+  const courseId = req.params.id;
   try {
-    const course = await Course.findByIdAndDelete(req.params.id);
-    if (!course) {
-      return res.status(404).json({ success: false, message: 'Course not found' });
-    }
-    res.status(200).json({
+    await Courses.findByIdAndDelete(courseId);
+    res.json({
       success: true,
-      message: 'Course deleted successfully',
+      message: "Course deleted successfully",
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
 };
 
