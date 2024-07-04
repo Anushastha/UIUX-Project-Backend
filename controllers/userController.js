@@ -240,63 +240,57 @@ const getSingleUser = async (req, res) => {
         res.send("Internal server error");
     }
 };
+
+
 const changePassword = async (req, res) => {
-    try {
-        // Step 1: Check incoming data
-        const { currentPassword, newPassword } = req.body;
+  try {
+    const { currentPassword, newPassword } = req.body;
 
-        if (!currentPassword || !newPassword) {
-            return res.status(400).json({
-                success: false,
-                message: "Please enter both current and new passwords.",
-            });
-        }
-
-        const user = await Users.findById(req.user.id);
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found",
-            });
-        }
-
-        // Step 3: Compare current password with the one stored in the database
-        const isMatched = await bcrypt.compare(currentPassword, user.password);
-        if (!isMatched) {
-            return res.status(401).json({
-                success: false,
-                message: "Current password is incorrect.",
-            });
-        }
-        // Step 4: Encrypt and update the password
-        const newSalt = await bcrypt.genSalt(10);
-        const newEncryptedPassword = await bcrypt.hash(newPassword, newSalt);
-
-        user.password = newEncryptedPassword;
-        await user.save();
-
-        // Step 5: Response
-        res.status(200).json({
-            success: true,
-            message: "Password changed successfully.",
-        });
-    } catch (error) {
-        console.error("Error in changePassword:", error);
-        if (error instanceof jwt.JsonWebTokenError) {
-            return res.status(401).json({
-                success: false,
-                message: "Invalid or expired token",
-            });
-        }
-        res.status(500).json({
-            success: false,
-            message: "Server Error",
-        });
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter both current and new passwords.",
+      });
     }
-};
-//Profile
 
+    const user = await Users.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const isMatched = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatched) {
+      return res.status(401).json({
+        success: false,
+        message: "Current password is incorrect.",
+      });
+    }
+
+    const newSalt = await bcrypt.genSalt(10);
+    const newEncryptedPassword = await bcrypt.hash(newPassword, newSalt);
+
+    user.password = newEncryptedPassword;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password changed successfully.",
+    });
+  } catch (error) {
+    console.error("Error in changePassword:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
+  
+//Profile
 const getUserProfile = async (req, res) => {
     try {
         const token = req.headers.authorization.split(" ")[1];
