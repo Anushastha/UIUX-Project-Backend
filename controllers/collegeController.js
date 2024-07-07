@@ -1,39 +1,79 @@
 const cloudinary = require("cloudinary");
 const Colleges = require("../model/collegeModel");
+const { default: mongoose } = require("mongoose");
 
 const createCollege = async (req, res) => {
   try {
-    const { collegeName, collegeDescription, collegeFees, collegeType, establishedAt } = req.body;
-    const { collegeImage } = req.files;
-    let { courses } = req.body;
+    const {
+      collegeName,
+      collegeDescription,
+      collegeEmail,
+      collegeNumber,
+      collegeType,
+      affiliation,
+      collegeWebsiteUrl,
+      coursesAvailable,
+      establishedAt,
+      location,
+      applyNow,
+      galleryImages: galleryImagesBody
+    } = req.body;
+    const { collegeImage, brochure, galleryImages } = req.files;
 
-    if (!collegeName || !collegeDescription || !collegeFees || !collegeType || !establishedAt || !collegeImage) {
+    // Check required fields
+    if (!collegeName || !collegeDescription || !collegeEmail || !collegeNumber || !collegeType || !affiliation || !collegeWebsiteUrl || !establishedAt || !location || !location.address || !location.googleMapsUrl || !applyNow || !collegeImage || !brochure) {
       return res.status(400).json({
         success: false,
-        message: "Please fill all the fields",
+        message: "Please fill all the required fields",
       });
     }
 
-    // Ensure courses is an array
-    if (!Array.isArray(courses)) {
-      courses = [courses];
-    }
+    // Handle coursesAvailable as array of ObjectIds
+    let courses = Array.isArray(coursesAvailable) ? coursesAvailable : [coursesAvailable];
+    courses = courses.map(course => new mongoose.Types.ObjectId(course));
 
-    // Upload image to Cloudinary
+    // Upload college image to Cloudinary
     const uploadedImage = await cloudinary.uploader.upload(collegeImage.path, {
       folder: "colleges",
       crop: "scale",
     });
 
+    // Upload brochure file to Cloudinary
+    const uploadedBrochure = await cloudinary.uploader.upload(brochure.path, {
+      folder: "colleges/brochures",
+    });
+
+    // Upload gallery images to Cloudinary
+    const uploadedGalleryImages = [];
+    if (galleryImages && galleryImages.length > 0) {
+      for (const image of galleryImages) {
+        const uploadedImage = await cloudinary.uploader.upload(image.path, {
+          folder: "colleges/gallery",
+          crop: "scale",
+        });
+        uploadedGalleryImages.push(uploadedImage.secure_url);
+      }
+    }
+
     // Save to database
     const newCollege = new Colleges({
       collegeName,
       collegeDescription,
-      collegeFees,
+      collegeEmail,
+      collegeNumber,
       collegeType,
+      affiliation,
+      collegeWebsiteUrl,
       coursesAvailable: courses,
       establishedAt,
       collegeImageUrl: uploadedImage.secure_url,
+      location: {
+        address: location.address,
+        googleMapsUrl: location.googleMapsUrl,
+      },
+      brochure: uploadedBrochure.secure_url, // Store the brochure URL
+      applyNow,
+      galleryImages: uploadedGalleryImages.length > 0 ? uploadedGalleryImages : galleryImagesBody,
     });
     await newCollege.save();
 
@@ -47,6 +87,7 @@ const createCollege = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Internal server error",
+      error: error.message, // Optionally include error details
     });
   }
 };
@@ -60,7 +101,23 @@ const getColleges = async (req, res) => {
     res.json({
       success: true,
       message: "All colleges fetched successfully!",
-      colleges: allColleges,
+      colleges: allColleges.map(college => ({
+        id: college._id,
+        collegeName: college.collegeName,
+        collegeDescription: college.collegeDescription,
+        collegeFees: college.collegeFees,
+        collegeType: college.collegeType,
+        establishedAt: college.establishedAt,
+        collegeImageUrl: college.collegeImageUrl,
+        location: {
+          address: college.location.address,
+          googleMapsUrl: college.location.googleMapsUrl,
+        },
+        brochure: college.brochure,
+        applyNow: college.applyNow,
+        galleryImages: college.galleryImages,
+        coursesAvailable: college.coursesAvailable,
+      })),
     });
   } catch (error) {
     console.error("Error fetching colleges:", error);
@@ -70,6 +127,7 @@ const getColleges = async (req, res) => {
     });
   }
 };
+
 
 const getSingleCollege = async (req, res) => {
   const collegeId = req.params.id;

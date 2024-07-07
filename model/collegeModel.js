@@ -11,31 +11,64 @@ const collegeSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
-  collegeFees: {
+  collegeEmail: {
+    type: String,
+    required: true,
+  },
+  collegeNumber: {
     type: Number,
     required: true,
   },
-  collegeType: {
+  collegeType: {  //private/public/government
+    type: String,
+    required: true,
+  },
+  affiliation: {
+    type: String,
+    required: true,
+  },
+  collegeWebsiteUrl: {
     type: String,
     required: true,
   },
   coursesAvailable: [{
-    courses: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Courses',
-      required: true,
-    }
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Courses',
+    required: true,
   }],
+
   establishedAt: {
     type: Date,
     required: true,
   },
-  collegeImageUrl: {
+  collegeImageUrl: {  //logo or display image
     type: String,
     required: true,
   },
+  location: {
+    address: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    googleMapsUrl: {
+      type: String, // URL to Google Maps
+      required: true,
+    }
+  },
+  brochure: {
+    type: String,
+    required: true,
+  },
+  applyNow: {
+    type: String,
+    required: true,
+  },
+  galleryImages: [{
+    type: String, // Array of image URLs
+    required: true,
+  }],
 });
 
 const Colleges = mongoose.model('colleges', collegeSchema);
-
 module.exports = Colleges;

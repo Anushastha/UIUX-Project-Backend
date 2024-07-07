@@ -1,6 +1,5 @@
 const express = require('express');
 const courseController = require('../controllers/courseController');
-const {authGuardAdmin } = require('../middleware/authGuard');
 
 const router = express.Router();
 
@@ -8,8 +7,8 @@ const router = express.Router();
 router.get('/get_courses', courseController.getCourses);
 router.get('/get_course/:id', courseController.getSingleCourse);
 
-router.post('/create_course',authGuardAdmin, courseController.createCourse);
-router.put('/update_course/:id',authGuardAdmin, courseController.updateCourse);
-router.delete('/delete_course/:id',authGuardAdmin, courseController.deleteCourse);
+router.post('/create_course', courseController.createCourse);
+router.put('/update_course/:id', courseController.updateCourse);
+router.delete('/delete_course/:id', courseController.deleteCourse);
 
 module.exports = router;
