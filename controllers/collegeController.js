@@ -15,13 +15,16 @@ const createCollege = async (req, res) => {
       coursesAvailable,
       establishedAt,
       location,
+      googleMapsUrl,
       applyNow,
       galleryImages: galleryImagesBody
     } = req.body;
     const { collegeImage, brochure, galleryImages } = req.files;
 
+    console.log(req.files)
+
     // Check required fields
-    if (!collegeName || !collegeDescription || !collegeEmail || !collegeNumber || !collegeType || !affiliation || !collegeWebsiteUrl || !establishedAt || !location || !location.address || !location.googleMapsUrl || !applyNow || !collegeImage || !brochure) {
+    if (!collegeName || !collegeDescription || !collegeEmail || !collegeNumber || !collegeType || !affiliation || !collegeWebsiteUrl || !establishedAt || !location || !location.googleMapsUrl || !applyNow || !collegeImage || !brochure) {
       return res.status(400).json({
         success: false,
         message: "Please fill all the required fields",
@@ -36,11 +39,13 @@ const createCollege = async (req, res) => {
     const uploadedImage = await cloudinary.uploader.upload(collegeImage.path, {
       folder: "colleges",
       crop: "scale",
+      resource_type: "image",
     });
 
-    // Upload brochure file to Cloudinary
+    //Upload bruckure to cloudinary
     const uploadedBrochure = await cloudinary.uploader.upload(brochure.path, {
       folder: "colleges/brochures",
+      resource_type: "raw"
     });
 
     // Upload gallery images to Cloudinary
@@ -50,6 +55,7 @@ const createCollege = async (req, res) => {
         const uploadedImage = await cloudinary.uploader.upload(image.path, {
           folder: "colleges/gallery",
           crop: "scale",
+          resource_type: "image",
         });
         uploadedGalleryImages.push(uploadedImage.secure_url);
       }
@@ -68,10 +74,10 @@ const createCollege = async (req, res) => {
       establishedAt,
       collegeImageUrl: uploadedImage.secure_url,
       location: {
-        address: location.address,
-        googleMapsUrl: location.googleMapsUrl,
+        address: location,
+        googleMapsUrl: googleMapsUrl,
       },
-      brochure: uploadedBrochure.secure_url, // Store the brochure URL
+      brochure: uploadedBrochure.secure_url,
       applyNow,
       galleryImages: uploadedGalleryImages.length > 0 ? uploadedGalleryImages : galleryImagesBody,
     });
@@ -86,8 +92,8 @@ const createCollege = async (req, res) => {
     console.error("Error creating college:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error",
-      error: error.message, // Optionally include error details
+      message: "Internal server error dfdf",
+      error: error.message,
     });
   }
 };
@@ -105,8 +111,12 @@ const getColleges = async (req, res) => {
         id: college._id,
         collegeName: college.collegeName,
         collegeDescription: college.collegeDescription,
-        collegeFees: college.collegeFees,
+        collegeEmail: college.collegeEmail,
+        collegeNumber: college.collegeNumber,
         collegeType: college.collegeType,
+        affiliation: college.affiliation,
+        collegeWebsiteUrl: college.collegeWebsiteUrl,
+        coursesAvailable: college.coursesAvailable,
         establishedAt: college.establishedAt,
         collegeImageUrl: college.collegeImageUrl,
         location: {
@@ -116,7 +126,6 @@ const getColleges = async (req, res) => {
         brochure: college.brochure,
         applyNow: college.applyNow,
         galleryImages: college.galleryImages,
-        coursesAvailable: college.coursesAvailable,
       })),
     });
   } catch (error) {
@@ -130,28 +139,21 @@ const getColleges = async (req, res) => {
 
 
 const getSingleCollege = async (req, res) => {
-  const collegeId = req.params.id;
   try {
-    const singleCollege = await Colleges.findById(collegeId);
-    if (!singleCollege) {
-      return res.status(404).json({
-        success: false,
-        message: "College not found",
-      });
+    const { id } = req.params;
+    const college = await Colleges.findById(id).populate('coursesAvailable');
+
+    if (!college) {
+      return res.status(404).json({ success: false, message: "College not found" });
     }
-    res.json({
-      success: true,
-      message: "College fetched successfully",
-      college: singleCollege,
-    });
+
+    res.json({ success: true, college });
   } catch (error) {
     console.error("Error fetching college:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    res.status(500).json({ success: false, message: "Internal server error", error: error.message });
   }
 };
+
 
 const updateCollege = async (req, res) => {
   console.log(req.body);
@@ -216,17 +218,14 @@ const updateCollege = async (req, res) => {
 
 const deleteCollege = async (req, res) => {
   const collegeId = req.params.id;
-
   try {
     const deletedCollege = await Colleges.findByIdAndDelete(collegeId);
-
     if (!deletedCollege) {
       return res.status(404).json({
         success: false,
         message: "College not found",
       });
     }
-
     res.json({
       success: true,
       message: "College deleted successfully",
@@ -239,6 +238,8 @@ const deleteCollege = async (req, res) => {
     });
   }
 };
+
+
 
 const searchColleges = async (req, res) => {
   const query = req.query.query;

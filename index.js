@@ -4,8 +4,9 @@ const dotenv = require('dotenv');
 const connectDB = require('./database/db');
 const cors = require('cors');
 const cloudinary = require('cloudinary');
-const acceptMultimedia = require('connect-multiparty')
 var morgan = require('morgan')
+var acceptMultimedia = require('connect-multiparty')
+// const fileUpload = require('express-fileupload')
 // Making express app
 const app = express();
 app.use(morgan('combined'))
@@ -13,13 +14,13 @@ app.use(morgan('combined'))
 dotenv.config();
 
 // cloudinary config
-
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+// app.use(fileUpload())
 app.use(acceptMultimedia())
 
 // cors config to accept request from frontend
@@ -44,9 +45,11 @@ app.get("/test", (req, res) => {
 })
 
 app.use('/api/user', require('./routes/userRoutes'))
+app.use("/api/user", require("./routes/saveRoutes"));
 app.use('/api/colleges', require('./routes/collegeRoutes'))
 app.use('/api/courses', require('./routes/courseRoutes'))
 app.use('/api/blogs', require('./routes/blogRoutes'))
+
 
 
 // defining port
