@@ -54,7 +54,7 @@ const getUserSaves = async (req, res) => {
     try {
         const save = await Save.findOne({ user: userId }).populate({
             path: "savedItems.college",
-            select: "collegeName address collegeNumber collegeImageUrl",
+            select: "collegeName location collegeNumber collegeImageUrl",
         });
 
         if (!save) {
@@ -105,6 +105,7 @@ const removeFromSaves = async (req, res) => {
         });
     }
 };
+
 
 module.exports = {
     addToSaved,

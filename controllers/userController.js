@@ -8,113 +8,113 @@ const ResetCode = require("../model/resetCodeModel");
 const createUser = async (req, res) => {
     // step 1 : Check if data is coming or not
     console.log(req.body);
-  
+
     // step 2 : Destructure the data
     const { fullName, email, password, confirmPassword, phoneNumber } = req.body;
-  
+
     // step 3 : validate the incomming data
     if (!fullName || !email || !password || !confirmPassword || !phoneNumber) {
-      return res.json({
-        success: false,
-        message: "Please enter all the fields.",
-      });
+        return res.json({
+            success: false,
+            message: "Please enter all the fields.",
+        });
     }
-  
+
     // step 4 : try catch block
     try {
-      // step 5 : Check existing user
-      const existingUser = await Users.findOne({ email: email });
-      if (existingUser) {
-        return res.json({
-          success: false,
-          message: "User already exists.",
+        // step 5 : Check existing user
+        const existingUser = await Users.findOne({ email: email });
+        if (existingUser) {
+            return res.json({
+                success: false,
+                message: "User already exists.",
+            });
+        }
+
+        // password encryption
+        const randomSalt = await bcrypt.genSalt(10);
+        const encryptedPassword = await bcrypt.hash(password, randomSalt);
+
+        // step 6 : create new user
+        const newUser = new Users({
+            // fieldname : incomming data name
+            fullName: fullName,
+            email: email,
+            phoneNumber: phoneNumber,
+            password: encryptedPassword,
+            confirmPassword: encryptedPassword,
         });
-      }
-  
-      // password encryption
-      const randomSalt = await bcrypt.genSalt(10);
-      const encryptedPassword = await bcrypt.hash(password, randomSalt);
-  
-      // step 6 : create new user
-      const newUser = new Users({
-        // fieldname : incomming data name
-        fullName: fullName,
-        email: email,
-        phoneNumber: phoneNumber,
-        password: encryptedPassword,
-        confirmPassword: encryptedPassword,
-      });
-  
-      // step 7 : save user and response
-      await newUser.save();
-      res.status(200).json({
-        success: true,
-        message: "User created successfully.",
-      });
+
+        // step 7 : save user and response
+        await newUser.save();
+        res.status(200).json({
+            success: true,
+            message: "User created successfully.",
+        });
     } catch (error) {
-      console.log(error);
-      res.status(500).json("Server Error");
+        console.log(error);
+        res.status(500).json("Server Error");
     }
-  };
-  
-  //Login User
-  const loginUser = async (req, res) => {
+};
+
+//Login User
+const loginUser = async (req, res) => {
     // step 1: Check incomming data
     console.log(req.body);
-  
+
     // destructuring
     const { email, password } = req.body;
-  
+
     // validation
     if (!email || !password) {
-      return res.json({
-        success: false,
-        message: "Please enter all fields.",
-      });
+        return res.json({
+            success: false,
+            message: "Please enter all fields.",
+        });
     }
     // try catch block
     try {
-      // finding user
-      const user = await Users.findOne({ email: email });
-      if (!user) {
-        return res.json({
-          success: false,
-          message: "User does not exists.",
+        // finding user
+        const user = await Users.findOne({ email: email });
+        if (!user) {
+            return res.json({
+                success: false,
+                message: "User does not exists.",
+            });
+        }
+        // Comparing password
+        const databasePassword = user.password;
+        const isMatched = await bcrypt.compare(password, databasePassword);
+
+        if (!isMatched) {
+            return res.json({
+                success: false,
+                message: "Invalid Credentials.",
+            });
+        }
+
+        // generate token token
+        const token = jwt.sign(
+            { id: user._id, isAdmin: user.isAdmin },
+            process.env.JWT_SECRET
+        );
+
+        // response
+        res.status(200).json({
+            success: true,
+            message: "Logged in successfully.",
+            token: token,
+            userData: user,
         });
-      }
-      // Comparing password
-      const databasePassword = user.password;
-      const isMatched = await bcrypt.compare(password, databasePassword);
-  
-      if (!isMatched) {
-        return res.json({
-          success: false,
-          message: "Invalid Credentials.",
-        });
-      }
-  
-      // generate token token
-      const token = jwt.sign(
-        { id: user._id, isAdmin: user.isAdmin },
-        process.env.JWT_SECRET
-      );
-  
-      // response
-      res.status(200).json({
-        success: true,
-        message: "Logged in successfully.",
-        token: token,
-        userData: user,
-      });
     } catch (error) {
-      console.log(error);
-      res.json({
-        success: false,
-        message: "Server Error",
-        error: error,
-      });
+        console.log(error);
+        res.json({
+            success: false,
+            message: "Server Error",
+            error: error,
+        });
     }
-  };
+};
 
 const resetPassword = async (req, res) => {
     const UserData = req.body;
@@ -229,7 +229,7 @@ const getUsers = async (req, res) => {
 const getSingleUser = async (req, res) => {
     const userId = req.params.id;
     try {
-        const singleUser = await User.findById(userId);
+        const singleUser = await Users.findById(userId);
         res.json({
             success: true,
             message: "Single user fetched successfully!",
@@ -242,66 +242,39 @@ const getSingleUser = async (req, res) => {
 };
 
 
-// Controller function to change password
 const changePassword = async (req, res) => {
+    const { currentPassword, newPassword, confirmNewPassword } = req.body;
+
+    if (newPassword !== confirmNewPassword) {
+        return res.status(400).json({ message: 'New passwords do not match' });
+    }
+
     try {
-        // Step 1: Check incoming data
-        const { currentPassword, newPassword } = req.body;
-
-        if (!currentPassword || !newPassword) {
-            return res.status(400).json({
-                success: false,
-                message: "Please enter both current and new passwords.",
-            });
-        }
-
         const user = await Users.findById(req.user.id);
 
         if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found",
-            });
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        // Step 3: Compare current password with the one stored in the database
-        const isMatched = await bcrypt.compare(currentPassword, user.password);
-        if (!isMatched) {
-            return res.status(401).json({
-                success: false,
-                message: "Current password is incorrect.",
-            });
-        }
-        // Step 4: Encrypt and update the password
-        const newSalt = await bcrypt.genSalt(10);
-        const newEncryptedPassword = await bcrypt.hash(newPassword, newSalt);
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
 
-        user.password = newEncryptedPassword;
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Current password is incorrect' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        user.password = hashedPassword;
         await user.save();
 
-        // Step 5: Response
-        res.status(200).json({
-            success: true,
-            message: "Password changed successfully.",
-        });
+        res.status(200).json({ message: 'Password changed successfully' });
     } catch (error) {
-        console.error("Error in changePassword:", error);
-        if (error instanceof jwt.JsonWebTokenError) {
-            return res.status(401).json({
-                success: false,
-                message: "Invalid or expired token",
-            });
-        }
-        res.status(500).json({
-            success: false,
-            message: "Server Error",
-        });
+        res.status(500).json({ message: 'Server error', error });
     }
 };
 
 
-  
-//Profile
 const getUserProfile = async (req, res) => {
     try {
         const token = req.headers.authorization.split(" ")[1];
@@ -322,11 +295,9 @@ const getUserProfile = async (req, res) => {
             message: "User profile retrieved successfully",
             userProfile: {
                 id: user.id,
-                firstName: user.firstName,
-                lastName: user.lastName,
+                fullName: user.fullName,
                 email: user.email,
-                contact: user.contact,
-                location: user.location,
+                phoneNumber: user.phoneNumber,
                 profileImage: user.profileImage,
             },
         });
@@ -358,13 +329,11 @@ const updateUserProfile = async (req, res) => {
                 message: "User not found",
             });
         }
-        const { firstName, lastName, email, contact, location, profileImage } = req.body;
+        const { fullName, email, phoneNumber } = req.body;
 
-        if (firstName) user.firstName = firstName;
-        if (lastName) user.lastName = lastName;
+        if (fullName) user.fullName = fullName;
         if (email) user.email = email;
-        if (contact) user.contact = contact;
-        if (location) user.location = location;
+        if (phoneNumber) user.phoneNumber = phoneNumber;
         if (req.files) {
             const uploadedImage = await cloudinary.v2.uploader.upload(
                 req.files.profileImage.path,
@@ -398,6 +367,8 @@ const updateUserProfile = async (req, res) => {
         });
     }
 };
+
+
 module.exports = {
     createUser,
     loginUser,
