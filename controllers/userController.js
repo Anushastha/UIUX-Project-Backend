@@ -215,7 +215,7 @@ const updatePassword = async (req, res) => {
 
 const getUsers = async (req, res) => {
     try {
-        const allUsers = await User.find({});
+        const allUsers = await Users.find({});
         res.json({
             success: true,
             message: "All users fetched successfully!",
@@ -312,57 +312,60 @@ const getUserProfile = async (req, res) => {
 
 const updateUserProfile = async (req, res) => {
     try {
-      // Ensure user is authenticated
-      if (!req.user || !req.user.id) {
-        return res.status(401).json({
-          success: false,
-          message: "Unauthorized: User not authenticated.",
+        // Ensure user is authenticated
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized: User not authenticated.",
+            });
+        }
+
+        // Find user by ID
+        const user = await Users.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        // Update user fields
+        const { fullName, email, phoneNumber } = req.body;
+        if (fullName) user.fullName = fullName;
+        if (email) user.email = email;
+        if (phoneNumber) user.phoneNumber = phoneNumber;
+
+        if (req.files) {
+            const uploadedImage = await cloudinary.v2.uploader.upload(
+                req.files.profileImage.path,
+                {
+                    folder: "profile_images",
+                    crop: "scale",
+                }
+            );
+            user.profileImage = uploadedImage.secure_url;
+        }
+        await user.save();
+
+        // Respond with updated user profile
+        res.status(200).json({
+            success: true,
+            message: "User profile updated successfully",
+            userProfile: {
+                fullName: user.fullName,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+                profileImage: user.profileImage,
+            },
         });
-      }
-  
-      // Find user by ID
-      const user = await Users.findById(req.user.id);
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: "User not found",
-        });
-      }
-  
-      // Update user fields
-      const { fullName, email, phoneNumber } = req.body;
-      if (fullName) user.fullName = fullName;
-      if (email) user.email = email;
-      if (phoneNumber) user.phoneNumber = phoneNumber;
-  
-      // Handle profile image upload if included in request
-      if (req.file) {
-        const result = await cloudinary.uploader.upload(req.file.path);
-        user.profileImage = result.secure_url;
-      }
-  
-      // Save updated user profile
-      const updatedUser = await user.save();
-  
-      // Respond with updated user profile
-      res.status(200).json({
-        success: true,
-        userProfile: {
-          _id: updatedUser._id,
-          fullName: updatedUser.fullName,
-          email: updatedUser.email,
-          phoneNumber: updatedUser.phoneNumber,
-          profileImage: updatedUser.profileImage,
-        },
-      });
     } catch (error) {
-      console.error("Error updating user profile:", error);
-      res.status(500).json({
-        success: false,
-        message: "Error updating user profile",
-      });
+        console.error("Error updating user profile:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error updating user profile",
+        });
     }
-  };
+};
 
 
 module.exports = {
