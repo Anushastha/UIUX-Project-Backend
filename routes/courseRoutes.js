@@ -8,7 +8,7 @@ router.get('/get_courses', courseController.getCourses);
 router.get('/get_course/:id', courseController.getSingleCourse);
 
 router.post('/create_course', courseController.createCourse);
-router.put('/update_course/:id', courseController.updateCourse);
+router.put('/update_course/:id',  courseController.updateCourse);
 router.delete('/delete_course/:id', courseController.deleteCourse);
 
 module.exports = router;
