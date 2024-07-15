@@ -157,10 +157,32 @@ const deleteCourse = async (req, res) => {
   }
 };
 
+const searchCourses = async (req, res) => {
+  const query = req.query.query;
+  try {
+    const courses = await Courses.find({
+      courseName: { $regex: query, $options: "i" },
+    });
+    res.status(200).json({
+      success: true,
+      courses,
+    });
+  } catch (error) {
+    console.error("Error searching courses:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+
 module.exports = {
   createCourse,
   getCourses,
   getSingleCourse,
   updateCourse,
   deleteCourse,
+  searchCourses
 };
