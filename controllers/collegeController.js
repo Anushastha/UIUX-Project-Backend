@@ -1,5 +1,6 @@
 const cloudinary = require("cloudinary");
 const Colleges = require("../model/collegeModel");
+const Courses = require('../model/courseModel'); 
 const { default: mongoose } = require("mongoose");
 
 const createCollege = async (req, res) => {
@@ -383,6 +384,34 @@ const filterColleges = async (req, res) => {
   }
 }
 
+const getCollegesOfferingCourse = async (req, res) => {
+  const courseId = req.params.courseId;
+
+  try {
+    // Fetch colleges that offer the course with the given ID
+    const colleges = await Colleges.find({ coursesAvailable: courseId });
+
+    if (!colleges.length) {
+      return res.json({
+        success: false,
+        message: "No colleges found for this course",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Colleges fetched successfully",
+      colleges: colleges,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 
 module.exports = {
   createCollege,
@@ -392,5 +421,6 @@ module.exports = {
   deleteCollege,
   searchColleges,
   filterColleges,
-  filterOptions
+  filterOptions,
+  getCollegesOfferingCourse
 };

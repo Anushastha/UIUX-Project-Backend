@@ -12,5 +12,7 @@ router.get('/search', collegeController.searchColleges);
 router.get('/filter', collegeController.filterColleges);
 router.get('/filter_options', collegeController.filterOptions);
 
+router.get('/collegesOfferingCourse/:courseId', collegeController.getCollegesOfferingCourse);
+
 
 module.exports = router;

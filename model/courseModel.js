@@ -38,7 +38,3 @@ const Courses = mongoose.model('Courses', courseSchema);
 module.exports = Courses;
 
 
-// colleges: [{
-//   type: mongoose.Schema.Types.ObjectId,
-//   ref: 'College'
-// }],
