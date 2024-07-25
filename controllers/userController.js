@@ -20,6 +20,14 @@ const createUser = async (req, res) => {
         });
     }
 
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    if (!nameRegex.test(fullName)) {
+        return res.json({
+            success: false,
+            message: "Full name should not contain numbers or special characters.",
+        });
+    }
+
     // step 4 : try catch block
     try {
         // step 5 : Check existing user
